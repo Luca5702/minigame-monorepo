@@ -1,0 +1,19 @@
+{
+  "name": "minigame-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "小红书互动游戏类小工具 Monorepo（纯前端离线、无网络请求、符合小红书打包规范）",
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "dev": "pnpm --filter @minigame/puzzle-card dev",
+    "dev:puzzle-card": "pnpm --filter @minigame/puzzle-card dev",
+    "build": "pnpm -r build",
+    "build:pages": "pnpm build && node ./scripts/build-pages.mjs",
+    "pack:puzzle-card": "pnpm --filter @minigame/puzzle-card pack:xhs",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  }
+}
