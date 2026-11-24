@@ -1,0 +1,19 @@
+{
+  "description": "《一绳两筐》微信小程序工程配置（可直接导入微信开发者工具）",
+  "packOptions": {
+    "ignore": []
+  },
+  "setting": {
+    "bundle": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "urlCheck": false
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.3.0",
+  "appid": "touristappid",
+  "projectname": "one-rope-two-baskets",
+  "condition": {}
+}

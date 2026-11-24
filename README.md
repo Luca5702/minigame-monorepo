@@ -1,32 +1,32 @@
-# minigame-monorepo · 小红书互动游戏小工具合集
+# Minigame Monorepo · 单机轻量小游戏合集
 
-面向小红书小工具规范构建的纯前端离线小游戏 Monorepo。所有打包产物均满足：
-- **纯本地离线运行**：无任何外部网络请求，图片通过 `FileReader` 本地读取
-- **CSP 合规**：无内联 `<script>`，全部采用外部 `.js` / `.css` 资源
-- **开箱即传**：自动打包 `index.html` 位于根目录的 `.zip` 包（含内置精选图与本地合成音效）
+面向 **小红书小工具**、**Bilibili Toy**、**微信小程序** 与 **GitHub Pages 纯静态 H5** 的离线单机小游戏研发 Monorepo。
+
+## 在线试玩 (GitHub Pages)
+
+- **合集展厅首页**：https://luca5702.github.io/minigame-monorepo/
+- **《一绳两筐》直达**：https://luca5702.github.io/minigame-monorepo/one-rope-two-baskets/
+- **《照片拼图卡 · 心动拼图》直达**：https://luca5702.github.io/minigame-monorepo/puzzle-card/
 
 ---
 
-## 目录结构
+## 仓库结构
 
 ```text
 minigame-monorepo/
 ├── games/
-│   └── puzzle-card/          # 《照片拼图卡 · 心动拼图》主游戏
-│       ├── public/presets/   # 7 张内置 3:4 小红书美学精选图
-│       └── src/
-│           ├── jigsaw.ts           # 经典凹凸咬合贝塞尔曲线裁切与 3D 纸板倒角渲染
-│           ├── photoStyles.ts      # 5 款卡面质感滤镜（浮光锦/软粉/胶片颗粒/雾面/全息）
-│           ├── puzzleBoard.ts      # 一体化刀片切割 → 重力掉入收集盒 → 原地磁吸/点选拼图引擎
-│           ├── postcardRenderer.ts # 1080×1440 (3:4) 正反双面拼图明信片导出渲染
-│           └── main.ts             # 全流程状态机与交互编排
+│   ├── one-rope-two-baskets/     # 《一绳两筐》：对向配重与中途卸货物理谜题（10关数学验证 + 调参工坊）
+│   └── puzzle-card/              # 《照片拼图卡 · 心动拼图》：刀片切割、重力落盘与双面明信片拼图工坊
 ├── packages/
-│   └── xhs-mini-sdk/         # 小红书小工具通用桥接与打包校验工具包
-│       ├── src/xhsBridge.ts  # window.xhs.miniTool 保存图片/震动兼容与降级
-│       ├── src/audio.ts      # 纯本地离线 Web Audio 拟音合成器（切割/咔哒吸附/翻面/通关）
-│       └── scripts/pack-xhs.mjs # 小红书 CSP & 离线合规校验 + zip 打包脚本
-└── releases/
-    └── puzzle-card-xhs.zip   # 可直接上传小红书后台的离线压缩包
+│   ├── platform-sdk/             # @minigame/platform-sdk：多端存储、振动、安全区避让与离线合成音效适配层
+│   ├── build-tools/              # @minigame/build-tools：小红书/B站离线包合规审计打包器 & 新游戏脚手架
+│   └── xhs-mini-sdk/             # @minigame/xhs-mini-sdk：小红书小工具图片保存/音频合成与打包桥接包
+├── scripts/
+│   └── build-pages.mjs           # 自动聚合全部 games/* 构建产物与合集展厅首页至 _site/
+└── docs/
+    ├── games/
+    │   └── one-rope-two-baskets-gdd.md  # 《一绳两筐》完整设计文档与势能守恒数值表
+    └── platform-publishing.md           # 小红书小工具 / Bilibili Toy / 微信小程序发布指南
 ```
 
 ---
@@ -34,17 +34,25 @@ minigame-monorepo/
 ## 快速开始
 
 ```bash
-# 安装依赖
+# 1. 安装依赖
 pnpm install
 
-# 启动《照片拼图卡》开发预览服务 (http://localhost:5173)
-pnpm dev
-
-# 类型检查
+# 2. 类型检查与全量单元测试
 pnpm typecheck
+pnpm test
 
-# 构建并打包符合小红书小工具规范的离线 zip 包
-pnpm pack:puzzle-card
+# 3. 本地开发预览
+pnpm dev:one-rope       # 启动《一绳两筐》
+pnpm dev:puzzle-card    # 启动《照片拼图卡》
+
+# 4. 构建全部平台产物与 GitHub Pages 站点 (_site/)
+pnpm build:pages
 ```
 
-打包完成后，产物位于 `releases/puzzle-card-xhs.zip`。
+## 新增下一款小游戏
+
+```bash
+pnpm new-game <kebab-case-slug> <中文游戏名>
+# 示例：
+pnpm new-game lantern-balance 提灯走索
+```

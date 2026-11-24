@@ -1,0 +1,19 @@
+{
+  "name": "@minigame/one-rope-two-baskets",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "《一绳两筐》—— 对向配重与中途卸货单机解谜小游戏（支持小红书小工具 / Bilibili Toy / 微信小程序）",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build:web": "vite build",
+    "build:weapp": "node ./scripts/build-weapp.mjs",
+    "build": "tsc --noEmit && pnpm build:web && node ../../packages/build-tools/src/pack-minitool.mjs && pnpm build:weapp",
+    "pack:platforms": "pnpm build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@minigame/platform-sdk": "workspace:*"
+  }
+}

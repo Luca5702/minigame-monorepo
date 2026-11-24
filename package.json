@@ -2,18 +2,26 @@
   "name": "minigame-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "小红书互动游戏类小工具 Monorepo（纯前端离线、无网络请求、符合小红书打包规范）",
-  "packageManager": "pnpm@12.21.0",
+  "description": "离线单机轻量小游戏合集 Monorepo —— 支持小红书小工具、Bilibili Toy、微信小程序及 GitHub Pages 静态部署",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
-    "dev": "pnpm --filter @minigame/puzzle-card dev",
+    "dev": "pnpm --filter @minigame/one-rope-two-baskets dev",
+    "dev:one-rope": "pnpm --filter @minigame/one-rope-two-baskets dev",
     "dev:puzzle-card": "pnpm --filter @minigame/puzzle-card dev",
     "build": "pnpm -r build",
     "build:pages": "pnpm build && node ./scripts/build-pages.mjs",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "pack:one-rope": "pnpm --filter @minigame/one-rope-two-baskets pack:platforms",
     "pack:puzzle-card": "pnpm --filter @minigame/puzzle-card pack:xhs",
-    "typecheck": "pnpm -r typecheck"
+    "new-game": "node packages/build-tools/src/scaffold-game.mjs"
   },
   "devDependencies": {
-    "typescript": "^5.7.2",
-    "vite": "^6.0.5"
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.7"
   }
 }

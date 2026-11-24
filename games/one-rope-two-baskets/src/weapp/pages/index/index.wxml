@@ -1,0 +1,245 @@
+<view class="shell">
+  <!-- 顶部极简铆钉乌木横匾栏 -->
+  <view class="top-bar">
+    <view class="level-btn" bindtap="onOpenLevels">
+      <text class="ch-tag">{{level.index}}/10</text>
+      <text>{{level.title}} ▾</text>
+    </view>
+    <view class="metrics">
+      <view class="dots-row">
+        <block wx:for="{{goalDots}}" wx:key="index">
+          <view class="g-dot {{item ? 'done' : ''}}"></view>
+        </block>
+      </view>
+      <text class="chip">⚙ {{ropeMoves}}/{{level.parRopeMoves}}</text>
+    </view>
+  </view>
+
+  <!-- 屏幕居中轻提示卡片（右上角带关闭按钮） -->
+  <view wx:if="{{toastText}}" class="floating-toast {{toastKind}}">
+    <view class="toast-close" bindtap="onDismissToast">✕</view>
+    <text class="toast-body">{{toastText}}</text>
+    <view wx:if="{{toastKind === 'warn' && canUndo}}" class="toast-undo-btn" bindtap="onUndo">↶ 退回一步</view>
+  </view>
+
+  <!-- 微缩木构货栈剖面主舞台 -->
+  <view class="hoist-frame">
+    <view class="pulley-rig">
+      <view class="attic-beam"></view>
+      <view class="top-rope"></view>
+      <view class="seesaw-box">
+        <view class="seesaw-beam" style="transform: rotate({{tiltDeg}}deg);">
+          <view class="pan">
+            <view wx:if="{{bricksA.length === 0}}" class="pan-empty"></view>
+            <block wx:for="{{bricksA}}" wx:key="index"><view class="p-brick p-a"></view></block>
+          </view>
+          <view class="pan pan-r">
+            <view wx:if="{{bricksB.length === 0}}" class="pan-empty"></view>
+            <block wx:for="{{bricksB}}" wx:key="index"><view class="p-brick p-b"></view></block>
+          </view>
+        </view>
+        <view class="fulcrum"></view>
+      </view>
+    </view>
+
+    <view class="stage-body">
+      <view class="rope-strand rope-left {{isDragging ? 'no-trans' : ''}}" style="height: calc({{rowIdxA * 33.3333}}% + 8rpx + {{dragDeltaPxA}}px);"></view>
+      <view class="rope-strand rope-right {{isDragging ? 'no-trans' : ''}}" style="height: calc({{rowIdxB * 33.3333}}% + 8rpx - {{dragDeltaPxA}}px);"></view>
+
+      <!-- 左彩绘青松木吊筐 -->
+      <view
+        class="carriage carriage-left {{isDragging ? 'no-trans' : ''}}"
+        style="top: calc({{rowIdxA * 33.3333}}% + 8rpx + {{dragDeltaPxA}}px);"
+        data-side="A"
+        bindtouchstart="onShaftTouchStart"
+        bindtouchmove="onShaftTouchMove"
+        bindtouchend="onShaftTouchEnd"
+      >
+        <view wx:if="{{tutHintSide === 'A'}}" class="tut-drag-pill">👇</view>
+        <view class="b-head">
+          <text class="b-dir">{{dirA}}</text>
+          <view class="mass-cells">
+            <block wx:for="{{gaugeA}}" wx:key="index"><view class="m-cell {{item ? 'lit' : ''}}"></view></block>
+          </view>
+        </view>
+        <view class="slots-stack">
+          <block wx:for="{{slotsA}}" wx:key="slotIdx">
+            <view wx:if="{{item.cargo}}" class="cradle">
+              <view class="p-cargo tier-{{item.cargo.tier}} {{item.cargo.atTarget ? 'glow-ready' : ''}}" catchtap="onUnloadItem" data-id="{{item.cargo.id}}">
+                <view wx:if="{{tutItemId === item.cargo.id}}" class="tut-item-finger">{{tutDir}}</view>
+                <view wx:if="{{item.cargo.atTarget}}" class="done-seal">✓</view>
+                <view class="sacks-row">
+                  <block wx:for="{{item.cargo.units}}" wx:key="index">
+                    <view wx:if="{{item.cargo.isSandbag}}" class="iron-unit">
+                      <view class="iron-ring"></view>
+                      <view class="iron-body"></view>
+                    </view>
+                    <view wx:else class="sack-unit sack-fl-{{item.cargo.targetFloor}}">
+                      <view class="sack-cord"></view>
+                      <view class="sack-patch"></view>
+                    </view>
+                  </block>
+                </view>
+                <view class="wood-pallet">
+                  <block wx:for="{{item.cargo.units}}" wx:key="index"><view class="pallet-slat"></view></block>
+                </view>
+                <view wx:if="{{evalInfo.floorA === 2 && evalInfo.countB < level.basketCapacity}}" class="swap-fab" catchtap="onSwap2F" data-id="{{item.cargo.id}}">⇄</view>
+              </view>
+            </view>
+            <view wx:elif="{{pending2FId && evalInfo.floorA === 2}}" class="cradle pick-cradle" catchtap="onConfirm2FBasket" data-basket="A">+</view>
+            <view wx:else class="cradle empty-cradle"></view>
+          </block>
+        </view>
+        <view class="grip-bar"><view class="grip-notch"></view><view class="grip-notch"></view></view>
+      </view>
+
+      <!-- 右彩绘赤陶木吊筐 -->
+      <view
+        class="carriage carriage-right {{isDragging ? 'no-trans' : ''}}"
+        style="top: calc({{rowIdxB * 33.3333}}% + 8rpx - {{dragDeltaPxA}}px);"
+        data-side="B"
+        bindtouchstart="onShaftTouchStart"
+        bindtouchmove="onShaftTouchMove"
+        bindtouchend="onShaftTouchEnd"
+      >
+        <view wx:if="{{tutHintSide === 'B'}}" class="tut-drag-pill">👇</view>
+        <view class="b-head">
+          <text class="b-dir">{{dirB}}</text>
+          <view class="mass-cells">
+            <block wx:for="{{gaugeB}}" wx:key="index"><view class="m-cell {{item ? 'lit' : ''}}"></view></block>
+          </view>
+        </view>
+        <view class="slots-stack">
+          <block wx:for="{{slotsB}}" wx:key="slotIdx">
+            <view wx:if="{{item.cargo}}" class="cradle">
+              <view class="p-cargo tier-{{item.cargo.tier}} {{item.cargo.atTarget ? 'glow-ready' : ''}}" catchtap="onUnloadItem" data-id="{{item.cargo.id}}">
+                <view wx:if="{{tutItemId === item.cargo.id}}" class="tut-item-finger">{{tutDir}}</view>
+                <view wx:if="{{item.cargo.atTarget}}" class="done-seal">✓</view>
+                <view class="sacks-row">
+                  <block wx:for="{{item.cargo.units}}" wx:key="index">
+                    <view wx:if="{{item.cargo.isSandbag}}" class="iron-unit">
+                      <view class="iron-ring"></view>
+                      <view class="iron-body"></view>
+                    </view>
+                    <view wx:else class="sack-unit sack-fl-{{item.cargo.targetFloor}}">
+                      <view class="sack-cord"></view>
+                      <view class="sack-patch"></view>
+                    </view>
+                  </block>
+                </view>
+                <view class="wood-pallet">
+                  <block wx:for="{{item.cargo.units}}" wx:key="index"><view class="pallet-slat"></view></block>
+                </view>
+                <view wx:if="{{evalInfo.floorA === 2 && evalInfo.countA < level.basketCapacity}}" class="swap-fab" catchtap="onSwap2F" data-id="{{item.cargo.id}}">⇄</view>
+              </view>
+            </view>
+            <view wx:elif="{{pending2FId && evalInfo.floorA === 2}}" class="cradle pick-cradle" catchtap="onConfirm2FBasket" data-basket="B">+</view>
+            <view wx:else class="cradle empty-cradle"></view>
+          </block>
+        </view>
+        <view class="grip-bar"><view class="grip-notch"></view><view class="grip-notch"></view></view>
+      </view>
+
+      <!-- 三层暖灰泥房间 + 规整麻袋虚线轮廓壁龛 + 底部铆接铁箍橡木楼板 -->
+      <view class="floors-bg">
+        <block wx:for="{{floorsView}}" wx:key="floor">
+          <view class="floor-band floor-band-{{item.floor}}">
+            <view
+              class="shaft-col shaft-left"
+              data-side="A"
+              bindtouchstart="onShaftTouchStart"
+              bindtouchmove="onShaftTouchMove"
+              bindtouchend="onShaftTouchEnd"
+            ></view>
+            <view class="platform">
+              <view class="plat-head">
+                <text class="floor-watermark">{{item.floor}}F</text>
+                <text wx:if="{{item.floor === 2 && evalInfo.floorA === 2}}" class="meet-mark">⇄</text>
+              </view>
+              <view class="wall-niches">
+                <block wx:for="{{item.ghostTargets}}" wx:for-item="ghost" wx:key="id">
+                  <view class="socket tier-{{ghost.tier}} socket-{{item.floor}}">
+                    <view class="s-sacks">
+                      <block wx:for="{{ghost.units}}" wx:key="index"><view class="s-sack-ghost"></view></block>
+                    </view>
+                    <view class="s-base">
+                      <block wx:for="{{ghost.units}}" wx:key="index"><view class="s-pip"></view></block>
+                    </view>
+                  </view>
+                </block>
+              </view>
+              <view class="plank-stage">
+                <block wx:for="{{item.floorItems}}" wx:for-item="cargo" wx:key="id">
+                  <view class="p-cargo tier-{{cargo.tier}} {{cargo.delivered ? 'delivered' : ''}} {{cargo.justSettled ? 'just-settled' : ''}} {{pending2FId === cargo.id ? 'selected' : ''}}" bindtap="onTapFloorItem" data-id="{{cargo.id}}">
+                    <view wx:if="{{tutItemId === cargo.id}}" class="tut-item-finger">{{tutDir}}</view>
+                    <view wx:if="{{cargo.delivered}}" class="done-seal">✓</view>
+                    <view class="sacks-row">
+                      <block wx:for="{{cargo.units}}" wx:key="index">
+                        <view wx:if="{{cargo.isSandbag}}" class="iron-unit">
+                          <view class="iron-ring"></view>
+                          <view class="iron-body"></view>
+                        </view>
+                        <view wx:else class="sack-unit sack-fl-{{cargo.targetFloor}}">
+                          <view class="sack-cord"></view>
+                          <view class="sack-patch"></view>
+                        </view>
+                      </block>
+                    </view>
+                    <view class="wood-pallet">
+                      <block wx:for="{{cargo.units}}" wx:key="index"><view class="pallet-slat"></view></block>
+                    </view>
+                  </view>
+                </block>
+              </view>
+              <view class="timber-plank">
+                <view class="iron-strap"></view>
+                <view class="iron-strap"></view>
+              </view>
+            </view>
+            <view
+              class="shaft-col shaft-right"
+              data-side="B"
+              bindtouchstart="onShaftTouchStart"
+              bindtouchmove="onShaftTouchMove"
+              bindtouchend="onShaftTouchEnd"
+            ></view>
+          </view>
+        </block>
+      </view>
+    </view>
+  </view>
+
+  <!-- 极简纯图标实木工具栏 -->
+  <view class="dock">
+    <view class="util-row">
+      <button class="u-btn" bindtap="onUndo" disabled="{{!canUndo}}">↶</button>
+      <button class="u-btn" bindtap="onReset">↺</button>
+      <button class="u-btn {{hintActive ? 'u-pass' : ''}}" bindtap="onHint">💡</button>
+      <button class="u-btn {{evalInfo.grade === 'pass' ? 'u-pass' : ''}}" bindtap="onSettlePass" disabled="{{evalInfo.grade !== 'pass'}}">🏁</button>
+    </view>
+  </view>
+
+  <!-- 绘本羊皮卷选关/结算弹窗 -->
+  <view wx:if="{{modal !== 'none'}}" class="modal-mask" bindtap="onCloseModal">
+    <view class="modal-card" catchtap="noop">
+      <block wx:if="{{modal === 'result'}}">
+        <view class="modal-title">{{settledGrade === 'excellent' ? '★★★ 优秀' : '★★☆ 达标'}}</view>
+        <view class="modal-desc">{{level.index}}. {{level.title}} · ⚙ {{ropeMoves}}/{{level.parRopeMoves}}</view>
+        <view class="modal-btns">
+          <button class="u-btn" bindtap="onReset">↺ 重玩</button>
+          <button class="primary-btn" bindtap="onNextLevel">下一关 →</button>
+        </view>
+      </block>
+      <block wx:if="{{modal === 'levels'}}">
+        <view class="modal-title">选择关卡</view>
+        <view class="lv-list">
+          <block wx:for="{{allLevels}}" wx:key="id">
+            <view class="lv-item {{item.id === level.id ? 'active' : ''}}" bindtap="onPickLevel" data-id="{{item.id}}">
+              <text>{{item.index}}. {{item.title}}</text>
+            </view>
+          </block>
+        </view>
+      </block>
+    </view>
+  </view>
+</view>

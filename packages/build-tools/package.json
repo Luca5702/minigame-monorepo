@@ -1,0 +1,10 @@
+{
+  "name": "@minigame/build-tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "pack-minitool": "./src/pack-minitool.mjs",
+    "scaffold-game": "./src/scaffold-game.mjs"
+  }
+}

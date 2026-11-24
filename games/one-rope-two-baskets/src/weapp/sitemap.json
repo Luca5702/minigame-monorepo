@@ -1,0 +1,4 @@
+{
+  "desc": "一绳两筐单机版",
+  "rules": [{ "action": "allow", "page": "*" }]
+}
