@@ -119,15 +119,41 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
         </div>
       </div>
 
-      <div class="collector-box" id="collector-box">
-        <div class="collector-box-header">
-          <span id="collector-box-title">拼图收集盒 · 直接拖出或点选</span>
-          <button type="button" class="collector-shuffle-btn" id="btn-shuffle-box">
-            摇一摇整理
-          </button>
+      <div class="collector-section">
+        <div class="collector-toolbar" id="collector-toolbar">
+          <div class="collector-caption">
+            <span class="collector-count-pill" id="collector-count-pill">${total}</span>
+            <span id="collector-box-title">待拼碎片 · 轻拖或点选放入</span>
+          </div>
+          <div class="collector-actions" id="collector-actions">
+            <button type="button" class="collector-action-btn" id="btn-tidy-box" title="整齐排列">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <rect x="3" y="4" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="4" width="7" height="7" rx="1.5"></rect>
+                <rect x="3" y="13" width="7" height="7" rx="1.5"></rect>
+                <rect x="14" y="13" width="7" height="7" rx="1.5"></rect>
+              </svg>
+              排齐
+            </button>
+            <button type="button" class="collector-action-btn" id="btn-shuffle-box" title="摇匀散开">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+                <line x1="4" y1="4" x2="9" y2="9"></line>
+              </svg>
+              摇匀
+            </button>
+          </div>
         </div>
-        <div class="collector-empty-watermark" id="collector-empty-msg" style="display:none;">
-          收集盒中的碎片已全部移至上方拼板
+
+        <div class="collector-tray-rim" id="collector-tray-rim">
+          <div class="collector-box" id="collector-box">
+            <div class="collector-empty-watermark" id="collector-empty-msg" style="display:none;">
+              ✦ 盘中碎片已全部移至上方拼板 ✦
+            </div>
+          </div>
         </div>
       </div>
 
@@ -142,9 +168,13 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
   const cuttingCanvas = container.querySelector<HTMLCanvasElement>('#board-cutting-canvas')!;
   const cellsLayer = container.querySelector<HTMLElement>('#board-cells-layer')!;
   const peekOverlay = container.querySelector<HTMLElement>('#board-peek-overlay')!;
+  const trayRim = container.querySelector<HTMLElement>('#collector-tray-rim')!;
   const collectorBox = container.querySelector<HTMLElement>('#collector-box')!;
+  const collectorCountPill = container.querySelector<HTMLElement>('#collector-count-pill')!;
   const collectorTitle = container.querySelector<HTMLElement>('#collector-box-title')!;
+  const collectorActions = container.querySelector<HTMLElement>('#collector-actions')!;
   const collectorEmptyMsg = container.querySelector<HTMLElement>('#collector-empty-msg')!;
+  const tidyBtn = container.querySelector<HTMLButtonElement>('#btn-tidy-box')!;
   const shuffleBtn = container.querySelector<HTMLButtonElement>('#btn-shuffle-box')!;
   const piecesLayer = container.querySelector<HTMLElement>('#stage-pieces-layer')!;
 
@@ -189,16 +219,15 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
     cellElements.push(cell);
   }
 
-  // Tap empty space inside collector box while a piece is selected -> move piece there!
+  // Tap empty space inside collector tray while a piece is selected -> move piece there!
   collectorBox.addEventListener('click', (e) => {
     if (solved || phase !== 'playing' || selectedPieceId === null) return;
-    if ((e.target as HTMLElement).closest('#btn-shuffle-box')) return;
     const m = measureStage();
     const arenaRect = arenaEl.getBoundingClientRect();
     const ax = e.clientX - arenaRect.left;
     const ay = e.clientY - arenaRect.top;
     const { u, v } = arenaToBoxUv(ax, ay, m);
-    const tilt = (Math.random() * 16 - 8) * (Math.PI / 180);
+    const tilt = (Math.random() * 14 - 7) * (Math.PI / 180);
     locations.set(selectedPieceId, { kind: 'box', u, v, rot: tilt });
     selectedPieceId = null;
     audio.playPieceLand(0.45, 0);
@@ -210,11 +239,13 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
     const aRect = arenaEl.getBoundingClientRect();
     const bRect = boardStage.getBoundingClientRect();
     const cRect = collectorBox.getBoundingClientRect();
-    const boardW = bRect.width || 254;
-    const boardH = bRect.height || 338;
+    const boardW = bRect.width || 262;
+    const boardH = bRect.height || 349;
     const cellW = boardW / gridSize;
     const cellH = boardH / gridSize;
-    const boxRestScale = Math.min(0.95, Math.max(0.72, 58 / Math.max(cellW, cellH)));
+    // Normalized resting tile height (~50px) so 9/16/25 pieces all sit with jewel-like balance inside the tray!
+    const targetTileH = total <= 9 ? 54 : total <= 16 ? 48 : 42;
+    const boxRestScale = Math.min(0.92, Math.max(0.46, targetTileH / Math.max(cellW, cellH)));
 
     return {
       arenaW: aRect.width || 350,
@@ -228,19 +259,19 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
       boxLeft: cRect.left - aRect.left,
       boxTop: cRect.top - aRect.top,
       boxW: cRect.width || 340,
-      boxH: cRect.height || 170,
+      boxH: cRect.height || 180,
       boxRestScale,
     };
   }
 
   function getBoxBounds(m: StageMetrics) {
-    const padX = Math.max(32, m.cellW * m.boxRestScale * 0.56);
-    const padTop = 52;
-    const padBottom = Math.max(26, m.cellH * m.boxRestScale * 0.48);
+    // Full tab-safe half-extents so no piece tab ever touches or crosses the inner tray wall
+    const padX = Math.max(34, m.cellW * m.boxRestScale * 0.75 + 12);
+    const padY = Math.max(36, m.cellH * m.boxRestScale * 0.75 + 10);
     const minX = m.boxLeft + padX;
-    const maxX = Math.max(minX + 10, m.boxLeft + m.boxW - padX);
-    const minY = m.boxTop + padTop;
-    const maxY = Math.max(minY + 10, m.boxTop + m.boxH - padBottom);
+    const maxX = Math.max(minX + 16, m.boxLeft + m.boxW - padX);
+    const minY = m.boxTop + padY;
+    const maxY = Math.max(minY + 16, m.boxTop + m.boxH - padY);
     return { minX, maxX, minY, maxY };
   }
 
@@ -259,9 +290,12 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
     return { u, v };
   }
 
-  // Generate well-spread stratified scatter UV coordinates inside the collector box
+  /**
+   * Generates art-directed, repulsion-relaxed flat-lay scatter positions inside the tray
+   * so pieces feel naturally tossed yet never clump awkwardly or touch the walls.
+   */
   function generateScatteredBoxTargets(count: number): Array<{ u: number; v: number; rot: number }> {
-    const cols = count <= 9 ? 5 : count <= 16 ? 6 : 7;
+    const cols = count <= 9 ? 5 : count <= 16 ? 6 : 8;
     const rows = Math.ceil(count / cols);
     const cells: Array<{ r: number; c: number }> = [];
     for (let r = 0; r < rows; r++) {
@@ -269,24 +303,73 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
         cells.push({ r, c });
       }
     }
-    // Fisher-Yates shuffle
     for (let i = cells.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [cells[i], cells[j]] = [cells[j], cells[i]];
     }
 
-    return Array.from({ length: count }, (_, idx) => {
+    const pts = Array.from({ length: count }, (_, idx) => {
       const cell = cells[idx % cells.length];
       const baseU = cols > 1 ? (cell.c + 0.5) / cols : 0.5;
       const baseV = rows > 1 ? (cell.r + 0.5) / rows : 0.5;
-      const jitterU = (Math.random() - 0.5) * (0.72 / cols);
-      const jitterV = (Math.random() - 0.5) * (0.72 / rows);
       return {
-        u: Math.max(0.03, Math.min(0.97, baseU + jitterU)),
-        v: Math.max(0.05, Math.min(0.95, baseV + jitterV)),
-        rot: (Math.random() * 24 - 12) * (Math.PI / 180),
+        u: Math.max(0.04, Math.min(0.96, baseU + (Math.random() - 0.5) * (0.65 / cols))),
+        v: Math.max(0.08, Math.min(0.92, baseV + (Math.random() - 0.5) * (0.65 / rows))),
+        rot: (Math.random() * 18 - 9) * (Math.PI / 180),
       };
     });
+
+    // Soft pairwise repulsion in aspect-weighted UV space (tray is ~2.1x wider than tall)
+    const aspectX = 2.1;
+    const minDist = count <= 9 ? 0.49 : count <= 16 ? 0.36 : 0.27;
+    for (let iter = 0; iter < 24; iter++) {
+      for (let i = 0; i < count; i++) {
+        for (let j = i + 1; j < count; j++) {
+          const dx = (pts[i].u - pts[j].u) * aspectX;
+          const dy = pts[i].v - pts[j].v;
+          const d = Math.hypot(dx, dy) || 0.001;
+          if (d < minDist) {
+            const push = (minDist - d) * 0.34;
+            const ux = (dx / d) * (push / aspectX);
+            const uy = (dy / d) * push;
+            pts[i].u = Math.max(0.04, Math.min(0.96, pts[i].u + ux));
+            pts[i].v = Math.max(0.08, Math.min(0.92, pts[i].v + uy));
+            pts[j].u = Math.max(0.04, Math.min(0.96, pts[j].u - ux));
+            pts[j].v = Math.max(0.08, Math.min(0.92, pts[j].v - uy));
+          }
+        }
+      }
+    }
+
+    return pts;
+  }
+
+  /**
+   * Generates crisp, centered, zero-overlap upright rows inside the tray ("排齐").
+   */
+  function generateTidyBoxTargets(count: number): Array<{ u: number; v: number; rot: number }> {
+    if (count === 0) return [];
+    const rows = count <= 5 ? 1 : count <= 14 ? 2 : 3;
+    const maxCols = Math.ceil(count / rows);
+    const out: Array<{ u: number; v: number; rot: number }> = [];
+
+    let idx = 0;
+    for (let r = 0; r < rows; r++) {
+      const remaining = count - idx;
+      const rowsLeft = rows - r;
+      const colsInRow = Math.ceil(remaining / rowsLeft);
+      const v = rows === 1 ? 0.5 : 0.14 + (r / (rows - 1)) * 0.72;
+
+      for (let c = 0; c < colsInRow; c++) {
+        const span = colsInRow > 1 ? (colsInRow - 1) / Math.max(1, maxCols - 1) : 0;
+        const leftU = 0.5 - span * 0.44;
+        const u =
+          colsInRow === 1 ? 0.5 : leftU + (c / (colsInRow - 1)) * (span * 0.88);
+        out.push({ u, v, rot: 0 });
+        idx++;
+      }
+    }
+    return out;
   }
 
   const initialScatter = generateScatteredBoxTargets(total);
@@ -444,12 +527,15 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
     if (stepsEl) stepsEl.textContent = String(steps);
     if (progEl) progEl.textContent = `${lockedCount}/${total}`;
 
+    collectorCountPill.textContent = String(boxCount);
     collectorTitle.textContent =
       lockedCount === total
-        ? '拼图收集盒 · 全部归位！'
-        : `拼图收集盒 · 盒内剩余 ${boxCount} 块`;
+        ? '全部碎片已归位！'
+        : boxCount === 0
+          ? '调整上方未锁定的碎片位置'
+          : '待拼碎片 · 轻拖或点选放入';
     collectorEmptyMsg.style.display = boxCount === 0 && lockedCount < total ? 'block' : 'none';
-    shuffleBtn.style.visibility =
+    collectorActions.style.visibility =
       phase === 'playing' && boxCount > 1 ? 'visible' : 'hidden';
 
     for (let id = 0; id < total; id++) {
@@ -485,7 +571,30 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
     }
   }
 
-  // Shuffle ("摇一摇整理") remaining pieces inside collector box!
+  // Neat Tidy ("排齐"): align all remaining pieces in clean upright studio rows inside tray
+  tidyBtn.addEventListener('click', () => {
+    if (solved || phase !== 'playing') return;
+    const boxIds: number[] = [];
+    for (const [id, loc] of locations.entries()) {
+      if (loc.kind === 'box') boxIds.push(id);
+    }
+    if (boxIds.length === 0) return;
+
+    const tidyTargets = generateTidyBoxTargets(boxIds.length);
+    boxIds.forEach((id, idx) => {
+      const t = tidyTargets[idx];
+      locations.set(id, { kind: 'box', u: t.u, v: t.v, rot: t.rot });
+      pieceZ.set(id, ++topZ);
+    });
+    selectedPieceId = null;
+    tidyBtn.classList.add('is-active');
+    shuffleBtn.classList.remove('is-active');
+    audio.playSoftPlace();
+    triggerHaptic('light');
+    syncPiecesToLocations(true);
+  });
+
+  // Shuffle ("摇匀"): tactile wooden-tray wiggle + art-directed relaxed scatter
   shuffleBtn.addEventListener('click', () => {
     if (solved || phase !== 'playing') return;
     const boxIds: number[] = [];
@@ -494,6 +603,10 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
     }
     if (boxIds.length === 0) return;
 
+    trayRim.classList.remove('is-shaking');
+    void trayRim.offsetWidth;
+    trayRim.classList.add('is-shaking');
+
     const freshTargets = generateScatteredBoxTargets(boxIds.length);
     boxIds.forEach((id, idx) => {
       const t = freshTargets[idx];
@@ -501,6 +614,8 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
       pieceZ.set(id, ++topZ);
     });
     selectedPieceId = null;
+    shuffleBtn.classList.add('is-active');
+    tidyBtn.classList.remove('is-active');
     audio.playScatter(boxIds.length);
     triggerHaptic('light');
     syncPiecesToLocations(true);
@@ -524,7 +639,6 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
         syncPiecesToLocations(true);
         return;
       }
-      // Swap occupant either to dragged piece's previous board slot or smoothly into collector box
       if (current.kind === 'board') {
         const swappedLocks = occupantId === current.slot;
         locations.set(occupantId, {
@@ -538,7 +652,7 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
           kind: 'box',
           u: current.u,
           v: current.v,
-          rot: (Math.random() * 20 - 10) * (Math.PI / 180),
+          rot: (Math.random() * 14 - 7) * (Math.PI / 180),
         });
         pieceZ.set(occupantId, ++topZ);
       }
@@ -585,7 +699,7 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
   }
 
   /* =========================================================
-     ACT 1–3: UNIFIED SLICING + GRAVITY FALL INTO COLLECTOR BOX
+     ACT 1–3: UNIFIED SLICING + GRAVITY FALL INTO COLLECTOR TRAY
      ========================================================= */
   let introRaf = 0;
   let introCancelled = false;
@@ -602,7 +716,7 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
 
   function startUnifiedIntro(): void {
     renderIntroHud('安放相纸，准备切割…');
-    shuffleBtn.style.visibility = 'hidden';
+    collectorActions.style.visibility = 'hidden';
 
     // Wait 1 frame so DOM layout rects are finalized
     introRaf = requestAnimationFrame(() => {
@@ -642,7 +756,7 @@ export function mountPuzzleBoard(opts: PuzzleBoardMountOptions): () => void {
         const vy0 = -(30 + Math.random() * 65);
         const dropDy = Math.max(40, targetPos.y - (startCy + popDy));
         const tImpact = (-vy0 + Math.sqrt(vy0 * vy0 + 2 * GRAVITY * dropDy)) / GRAVITY;
-        const vx0 = (targetPos.x - (startCx + popDx)) / Math.max(0.25, tImpact);
+        const vx0 = ((targetPos.x - (startCx + popDx)) * 0.84) / Math.max(0.25, tImpact);
 
         const rowFromBottom = gridSize - 1 - p.row;
         const releaseDelayMs = rowFromBottom * 78 + Math.random() * 88;
