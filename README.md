@@ -17,10 +17,9 @@ minigame-monorepo/
 │       └── src/
 │           ├── jigsaw.ts           # 经典凹凸咬合贝塞尔曲线裁切与 3D 纸板倒角渲染
 │           ├── photoStyles.ts      # 5 款卡面质感滤镜（浮光锦/软粉/胶片颗粒/雾面/全息）
-│           ├── cuttingStage.ts     # 仪式感刀片切割 + 滤镜晕染 + 碎片弹开动效
-│           ├── puzzleBoard.ts      # 拖拽磁吸（≤34px）+ 点击交换双交互拼图引擎
+│           ├── puzzleBoard.ts      # 一体化刀片切割 → 重力掉入收集盒 → 原地磁吸/点选拼图引擎
 │           ├── postcardRenderer.ts # 1080×1440 (3:4) 正反双面拼图明信片导出渲染
-│           └── main.ts             # 8 屏主流程状态机与交互编排
+│           └── main.ts             # 全流程状态机与交互编排
 ├── packages/
 │   └── xhs-mini-sdk/         # 小红书小工具通用桥接与打包校验工具包
 │       ├── src/xhsBridge.ts  # window.xhs.miniTool 保存图片/震动兼容与降级

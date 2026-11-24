@@ -2,7 +2,6 @@ export type ScreenId =
   | 'cover'
   | 'select'
   | 'config'
-  | 'cutting'
   | 'play'
   | 'celebrate'
   | 'letter'

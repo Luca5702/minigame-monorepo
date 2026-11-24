@@ -5,7 +5,6 @@ import {
   saveCanvasImage,
   triggerHaptic,
 } from '@minigame/xhs-mini-sdk';
-import { startCuttingAnimation } from './cuttingStage.ts';
 import {
   drawEmbossedSeamGrid,
   generateEdgeMatrix,
@@ -38,6 +37,7 @@ interface AppState {
   timerMode: TimerMode;
   edgeMatrix: EdgeSides[][];
   pieces: RenderedPiece[];
+  runCuttingIntro: boolean;
   elapsedSeconds: number;
   steps: number;
   noteText: string;
@@ -60,6 +60,7 @@ const state: AppState = {
   timerMode: 'none',
   edgeMatrix: [],
   pieces: [],
+  runCuttingIntro: true,
   elapsedSeconds: 0,
   steps: 0,
   noteText: '',
@@ -190,9 +191,6 @@ function renderScreen(): void {
       break;
     case 'config':
       void renderConfigScreen();
-      break;
-    case 'cutting':
-      renderCuttingScreen();
       break;
     case 'play':
       renderPlayScreen();
@@ -609,76 +607,19 @@ async function renderConfigScreen(): Promise<void> {
   appRoot.querySelector('#btn-start-cutting')!.addEventListener('click', () => {
     audio.unlock();
     audio.playTap();
-    // Prepare puzzle matrix & 3D beveled pieces right before cutting ritual
+    // Prepare puzzle matrix & 3D beveled pieces, then enter unified cutting + collector-box stage
     const n = Math.round(Math.sqrt(state.pieceCount));
     const seed = Math.floor(Math.random() * 900000) + 100000;
     state.edgeMatrix = generateEdgeMatrix(n, seed);
     const styledCanvas = rebuildStyledPhoto();
     state.pieces = slicePhotoIntoPieces(styledCanvas, state.pieceCount, state.edgeMatrix);
-    navigateTo('cutting');
-  });
-}
-
-/* =========================================================
-   5.4 切割动画页 Cutting Ritual Screen
-   ========================================================= */
-function renderCuttingScreen(): void {
-  appRoot.innerHTML = `
-    <header class="topbar">
-      <div class="topbar-left">
-        <span class="topbar-step">STEP 3 / 3 · 切割仪式</span>
-      </div>
-      <div class="topbar-right">
-        ${renderSoundButtonHtml()}
-      </div>
-    </header>
-
-    <main class="screen cutting-screen">
-      <div class="cutting-canvas-wrap">
-        <canvas class="cutting-canvas" id="cutting-stage-canvas"></canvas>
-      </div>
-
-      <div style="width:100%;">
-        <p class="cutting-status" id="cutting-status-text">准备切割拼图…</p>
-        <button type="button" class="btn-ghost" id="btn-skip-cutting">
-          直接开始拼图 →
-        </button>
-      </div>
-    </main>
-  `;
-
-  bindSoundToggle();
-  const stageCanvas = appRoot.querySelector<HTMLCanvasElement>('#cutting-stage-canvas')!;
-  const statusEl = appRoot.querySelector<HTMLElement>('#cutting-status-text')!;
-
-  let entered = false;
-  const goPlay = () => {
-    if (entered) return;
-    entered = true;
+    state.runCuttingIntro = true;
     navigateTo('play');
-  };
-
-  activeCleanup = startCuttingAnimation({
-    stageCanvas,
-    rawPhoto: state.rawPhotoCanvas!,
-    styledPhoto: state.styledPhotoCanvas!,
-    edgeMatrix: state.edgeMatrix,
-    pieces: state.pieces,
-    audio,
-    onStatusText: (txt) => {
-      statusEl.textContent = txt;
-    },
-    onComplete: goPlay,
-  });
-
-  appRoot.querySelector('#btn-skip-cutting')!.addEventListener('click', () => {
-    audio.playTap();
-    goPlay();
   });
 }
 
 /* =========================================================
-   5.5 拼图游戏页 Gameplay Screen
+   5.4 & 5.5 切割 + 掉落收集盒 + 原地拼图一体化页 Unified Play Screen
    ========================================================= */
 function renderPlayScreen(): void {
   appRoot.innerHTML = `
@@ -693,7 +634,7 @@ function renderPlayScreen(): void {
       </div>
       <div class="topbar-right">
         <button type="button" class="icon-btn" id="btn-play-restart">
-          重开
+          重切重开
         </button>
         ${renderSoundButtonHtml()}
       </div>
@@ -710,17 +651,27 @@ function renderPlayScreen(): void {
 
   appRoot.querySelector('#btn-play-restart')!.addEventListener('click', () => {
     audio.playTap();
+    if (activeCleanup) {
+      activeCleanup();
+      activeCleanup = null;
+    }
+    state.runCuttingIntro = true;
     renderPlayScreen();
   });
 
   const mountEl = appRoot.querySelector<HTMLElement>('#play-mount-container')!;
+  const shouldCut = state.runCuttingIntro;
+  state.runCuttingIntro = false;
+
   activeCleanup = mountPuzzleBoard({
     container: mountEl,
+    rawPhoto: state.rawPhotoCanvas!,
     styledPhoto: state.styledPhotoCanvas!,
     edgeMatrix: state.edgeMatrix,
     pieces: state.pieces,
     pieceCount: state.pieceCount,
     timerMode: state.timerMode,
+    runCuttingIntro: shouldCut,
     audio,
     onSolved: ({ elapsedSeconds, steps }) => {
       state.elapsedSeconds = elapsedSeconds;
