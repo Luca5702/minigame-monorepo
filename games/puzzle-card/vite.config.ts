@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [
     {
       name: 'xhs-defer-iife-script',
+      apply: 'build',
       enforce: 'post',
       transformIndexHtml(html) {
         return html

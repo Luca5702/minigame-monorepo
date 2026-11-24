@@ -152,6 +152,50 @@ export class TactileAudio {
     }
   }
 
+  /** Crisp cardboard tile landing tap when a falling piece hits the tray */
+  public playPieceLand(intensity = 0.8, pitchOffset = 0): void {
+    const ctx = this.ensureReady();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const vol = Math.max(0.02, Math.min(0.16, 0.11 * intensity));
+
+    // Warm woody cardboard thud
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    const f0 = 240 + pitchOffset * 65;
+    osc.frequency.setValueAtTime(f0, now);
+    osc.frequency.exponentialRampToValueAtTime(95, now + 0.048);
+
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.052);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.056);
+
+    // Subtle paper edge click
+    if (this.noiseBuffer) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(1950 + pitchOffset * 320, now);
+      bp.Q.setValueAtTime(2.6, now);
+
+      const nGain = ctx.createGain();
+      nGain.gain.setValueAtTime(vol * 0.75, now);
+      nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.024);
+
+      src.connect(bp);
+      bp.connect(nGain);
+      nGain.connect(ctx.destination);
+      src.start(now);
+      src.stop(now + 0.028);
+    }
+  }
+
   /** Gentle tactile lift when picking up a puzzle piece */
   public playPickup(): void {
     const ctx = this.ensureReady();
